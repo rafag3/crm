@@ -15,6 +15,10 @@ import { TemplateManager } from '@/components/settings/template-manager';
 import { FieldsAndTagsPanel } from '@/components/settings/fields-and-tags-panel';
 import { DealsSettings } from '@/components/settings/deals-settings';
 import { MembersTab } from '@/components/settings/members-tab';
+import { BusinessProfilePanel } from '@/components/settings/business-profile-panel';
+import { QuickRepliesPanel } from '@/components/settings/quick-replies-panel';
+import { WidgetPanel } from '@/components/settings/widget-panel';
+import { WeeklyReportPanel } from '@/components/settings/weekly-report-panel';
 import {
   resolveSection,
   type SettingsSection,
@@ -59,6 +63,10 @@ export default function SettingsPage() {
     fields: <FieldsAndTagsPanel />,
     deals: <DealsSettings />,
     members: <MembersTab />,
+    negocio: <BusinessProfilePanel />,
+    respostas: <QuickRepliesPanel />,
+    widget: <WidgetPanel />,
+    relatorio: <WeeklyReportPanel />,
   };
 
   return (

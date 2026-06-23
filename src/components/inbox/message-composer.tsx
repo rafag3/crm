@@ -18,7 +18,9 @@ import {
   Square,
   X,
   Loader2,
+  Zap,
 } from "lucide-react";
+import { useQuickReplies, type QuickReply } from "@/hooks/use-quick-replies";
 import { Button } from "@/components/ui/button";
 import { GatedButton } from "@/components/ui/gated-button";
 import {
@@ -124,6 +126,19 @@ export function MessageComposer({
   const [sending, setSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Quick replies popup state
+  const { replies: allReplies } = useQuickReplies();
+  const [qrOpen, setQrOpen] = useState(false);
+  const [qrIndex, setQrIndex] = useState(0);
+  const qrFilter = text.startsWith("/") ? text.slice(1).toLowerCase() : "";
+  const filteredReplies = qrOpen
+    ? allReplies.filter(
+        (r) =>
+          r.shortcut.includes(qrFilter) ||
+          r.title.toLowerCase().includes(qrFilter)
+      )
+    : [];
+
   // Media attachment state. `draft` holds an uploaded-but-not-yet-sent
   // attachment; `busy` covers the upload/transcode window.
   const [draft, setDraft] = useState<MediaDraft | null>(null);
@@ -207,20 +222,66 @@ export function MessageComposer({
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      if (qrOpen && filteredReplies.length > 0) {
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setQrIndex((i) => (i > 0 ? i - 1 : filteredReplies.length - 1));
+          return;
+        }
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setQrIndex((i) => (i < filteredReplies.length - 1 ? i + 1 : 0));
+          return;
+        }
+        if (e.key === "Tab" || (e.key === "Enter" && !e.shiftKey)) {
+          e.preventDefault();
+          applyQuickReply(filteredReplies[qrIndex]);
+          return;
+        }
+        if (e.key === "Escape") {
+          setQrOpen(false);
+          return;
+        }
+      }
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         handleSend();
       }
     },
-    [handleSend]
+    [handleSend, qrOpen, filteredReplies, qrIndex, applyQuickReply]
+  );
+
+  const applyQuickReply = useCallback(
+    (reply: QuickReply) => {
+      setText(reply.content);
+      setQrOpen(false);
+      setQrIndex(0);
+      setTimeout(() => {
+        const el = textareaRef.current;
+        if (el) {
+          el.focus();
+          el.style.height = "auto";
+          el.style.height = `${Math.min(el.scrollHeight, 96)}px`;
+        }
+      }, 0);
+    },
+    []
   );
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      setText(e.target.value);
+      const val = e.target.value;
+      setText(val);
       adjustHeight();
+      // Open quick-reply popup when text starts with "/"
+      if (val.startsWith("/") && allReplies.length > 0) {
+        setQrOpen(true);
+        setQrIndex(0);
+      } else {
+        setQrOpen(false);
+      }
     },
-    [adjustHeight]
+    [adjustHeight, allReplies.length]
   );
 
   // Upload a captured file to chat-media and stage it as a draft.
@@ -391,7 +452,7 @@ export function MessageComposer({
       {sessionExpired && (
         <div className="mb-2 flex items-center justify-between rounded-lg bg-amber-500/10 px-3 py-2">
           <p className="text-xs text-amber-400">
-            24-hour session expired. Use a template to re-engage.
+            Sessão de 24 horas expirada. Use um template para reabrir.
           </p>
           <Button
             variant="ghost"
@@ -451,7 +512,7 @@ export function MessageComposer({
         <div className="flex items-center gap-3 rounded-xl border border-border bg-muted px-4 py-2.5">
           <span className="flex h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500" />
           <span className="flex-1 text-sm text-foreground">
-            Recording… {formatDuration(recordSeconds)} /{" "}
+            Gravando… {formatDuration(recordSeconds)} /{" "}
             {formatDuration(MAX_RECORDING_SECONDS)}
           </span>
           <button
@@ -459,7 +520,7 @@ export function MessageComposer({
             onClick={cancelRecording}
             className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-card hover:text-foreground"
           >
-            Cancel
+            Cancelar
           </button>
           <Button
             size="sm"
@@ -494,19 +555,19 @@ export function MessageComposer({
             <DropdownMenuContent align="start" className="border-border bg-popover">
               <DropdownMenuItem onClick={() => imageInputRef.current?.click()}>
                 <ImageIcon className="mr-2 h-4 w-4" />
-                Photo
+                Foto
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => videoInputRef.current?.click()}>
                 <Video className="mr-2 h-4 w-4" />
-                Video
+                Vídeo
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => documentInputRef.current?.click()}>
                 <FileText className="mr-2 h-4 w-4" />
-                Document
+                Documento
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => void startRecording()}>
                 <Mic className="mr-2 h-4 w-4" />
-                Voice note
+                Nota de voz
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -530,10 +591,10 @@ export function MessageComposer({
             onKeyDown={handleKeyDown}
             placeholder={
               readOnly
-                ? "Read-only — viewers can browse but not reply"
+                ? "Somente leitura — visualizadores não podem responder"
                 : sessionExpired
-                  ? "Session expired - use a template"
-                  : "Type a message... (Shift+Enter for new line)"
+                  ? "Sessão expirada - use um template"
+                  : "Digite uma mensagem... (Shift+Enter para nova linha)"
             }
             disabled={sessionExpired || readOnly}
             rows={1}
@@ -560,12 +621,53 @@ export function MessageComposer({
         </div>
       )}
 
+      {/* Quick replies popup — floats above the hint text */}
+      {!draft && !recording && qrOpen && filteredReplies.length > 0 && (
+        <div className="mt-1 overflow-hidden rounded-lg border border-border bg-card shadow-lg">
+          <div className="flex items-center gap-1.5 border-b border-border px-3 py-1.5">
+            <Zap className="h-3 w-3 text-primary" />
+            <span className="text-[10px] font-medium text-muted-foreground">
+              Respostas rápidas — ↑↓ navegar · Tab ou Enter para inserir · Esc fechar
+            </span>
+          </div>
+          <ul className="max-h-48 overflow-y-auto p-1">
+            {filteredReplies.map((r, i) => (
+              <li key={r.id}>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault(); // keep textarea focus
+                    applyQuickReply(r);
+                  }}
+                  className={cn(
+                    "flex w-full flex-col items-start rounded-md px-3 py-2 text-left transition-colors",
+                    i === qrIndex
+                      ? "bg-primary/10 text-primary"
+                      : "hover:bg-muted text-foreground"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                      /{r.shortcut}
+                    </span>
+                    <span className="text-xs font-medium">{r.title}</span>
+                  </div>
+                  <span className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">
+                    {r.content}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Hint sits outside the flex row so its height doesn't push
           `items-end` buttons below the textarea. Indented to line up
           under the textarea left edge. */}
       {!draft && !recording && (
         <p className="mt-1 pl-[5.5rem] text-[10px] text-muted-foreground">
-          Type &apos;/&apos; for quick replies
+          Digite &apos;/&apos; para respostas rápidas
         </p>
       )}
     </div>
@@ -640,7 +742,7 @@ function MediaDraftPreview({
                 onSend();
               }
             }}
-            placeholder="Add a caption…"
+            placeholder="Adicionar legenda…"
             className="flex-1 rounded-xl border border-border bg-muted px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground outline-none transition-colors focus:border-primary/50"
           />
         )}

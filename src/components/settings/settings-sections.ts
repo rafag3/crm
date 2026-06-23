@@ -1,13 +1,17 @@
 import {
+  Building2,
   Coins,
   FileText,
+  Globe,
   LayoutGrid,
+  BarChart3,
   Palette,
   PlugZap,
   Shield,
   Tags,
   User,
   UsersRound,
+  Zap,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -29,6 +33,10 @@ export const SETTINGS_SECTIONS = [
   'fields',
   'deals',
   'members',
+  'negocio',
+  'respostas',
+  'widget',
+  'relatorio',
 ] as const;
 
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
@@ -44,20 +52,24 @@ export interface SectionMeta {
 }
 
 export const SECTION_META: Record<SettingsSection, SectionMeta> = {
-  overview: { id: 'overview', label: 'Overview', icon: LayoutGrid, group: 'top' },
-  profile: { id: 'profile', label: 'Your profile', icon: User, group: 'account' },
-  security: { id: 'security', label: 'Login & security', icon: Shield, group: 'account' },
-  appearance: { id: 'appearance', label: 'Appearance', icon: Palette, group: 'account' },
+  overview: { id: 'overview', label: 'Visão Geral', icon: LayoutGrid, group: 'top' },
+  profile: { id: 'profile', label: 'Seu perfil', icon: User, group: 'account' },
+  security: { id: 'security', label: 'Login e segurança', icon: Shield, group: 'account' },
+  appearance: { id: 'appearance', label: 'Aparência', icon: Palette, group: 'account' },
   whatsapp: { id: 'whatsapp', label: 'WhatsApp', icon: PlugZap, group: 'workspace' },
   templates: { id: 'templates', label: 'Templates', icon: FileText, group: 'workspace' },
-  fields: { id: 'fields', label: 'Fields & tags', icon: Tags, group: 'workspace' },
-  deals: { id: 'deals', label: 'Deals & currency', icon: Coins, group: 'workspace' },
-  members: { id: 'members', label: 'Team members', icon: UsersRound, group: 'workspace' },
+  fields: { id: 'fields', label: 'Campos e tags', icon: Tags, group: 'workspace' },
+  deals: { id: 'deals', label: 'Negócios e moeda', icon: Coins, group: 'workspace' },
+  members: { id: 'members', label: 'Membros do time', icon: UsersRound, group: 'workspace' },
+  negocio: { id: 'negocio', label: 'Perfil do Negócio', icon: Building2, group: 'workspace' },
+  respostas: { id: 'respostas', label: 'Respostas Rápidas', icon: Zap, group: 'workspace' },
+  widget: { id: 'widget', label: 'Widget para Site', icon: Globe, group: 'workspace' },
+  relatorio: { id: 'relatorio', label: 'Relatório Semanal', icon: BarChart3, group: 'workspace' },
 };
 
 export const RAIL_GROUPS: { label: string | null; group: SectionMeta['group'] }[] = [
   { label: null, group: 'top' },
-  { label: 'Account', group: 'account' },
+  { label: 'Conta', group: 'account' },
   { label: 'Workspace', group: 'workspace' },
 ];
 
