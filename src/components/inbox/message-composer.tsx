@@ -220,6 +220,23 @@ export function MessageComposer({
     }
   }, [text, sending, sessionExpired, onSend, replyTo?.id]);
 
+  const applyQuickReply = useCallback(
+    (reply: QuickReply) => {
+      setText(reply.content);
+      setQrOpen(false);
+      setQrIndex(0);
+      setTimeout(() => {
+        const el = textareaRef.current;
+        if (el) {
+          el.focus();
+          el.style.height = "auto";
+          el.style.height = `${Math.min(el.scrollHeight, 96)}px`;
+        }
+      }, 0);
+    },
+    []
+  );
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
       if (qrOpen && filteredReplies.length > 0) {
@@ -249,23 +266,6 @@ export function MessageComposer({
       }
     },
     [handleSend, qrOpen, filteredReplies, qrIndex, applyQuickReply]
-  );
-
-  const applyQuickReply = useCallback(
-    (reply: QuickReply) => {
-      setText(reply.content);
-      setQrOpen(false);
-      setQrIndex(0);
-      setTimeout(() => {
-        const el = textareaRef.current;
-        if (el) {
-          el.focus();
-          el.style.height = "auto";
-          el.style.height = `${Math.min(el.scrollHeight, 96)}px`;
-        }
-      }, 0);
-    },
-    []
   );
 
   const handleChange = useCallback(
